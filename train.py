@@ -123,6 +123,7 @@ def my_worker_init_fn(worker_id):
 # Create Dataset and Dataloader
 assert FLAGS.dataset == 'scan2cad', "Current implementation only supports ScanNet with Scan2CAD labels."
 sys.path.append(os.path.join(ROOT_DIR, 'scan2cad'))
+#sys.path.append('/home/rasad/scratch/3dssr/data/scan2cad')
 total_train_exmaples = 1193
 from scan2cad.scan2cad_detection_dataset import Scan2CadDetectionDataset, MAX_NUM_OBJ
 from scan2cad.scan2cad_config import Scan2CadDatasetConfig
