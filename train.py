@@ -58,6 +58,9 @@ parser.add_argument('--lr_decay_steps', default='80,120,160', help='When to deca
 parser.add_argument('--lr_decay_rates', default='0.1,0.1,0.1', help='Decay rates for lr decay [default: 0.1,0.1,0.1]')
 parser.add_argument('--no_height', action='store_true', help='Do NOT use height signal in input.')
 parser.add_argument('--use_color', action='store_true', help='Use RGB color in input.')
+# TODO: allow for rotating the scene.
+parser.add_argument('--aggressive_rot', action='store_true', default=False)
+parser.add_argument('--augment_eval', action='store_true', default=False)
 parser.add_argument('--use_sunrgbd_v2', action='store_true', help='Use V2 box labels for SUN RGB-D dataset')
 parser.add_argument('--overwrite', action='store_true', help='Overwrite existing log and dump folders.')
 parser.add_argument('--dump_results', action='store_true', help='Dump results.')
@@ -127,10 +130,10 @@ from scan2cad.scan2cad_config import Scan2CadDatasetConfig
 DATASET_CONFIG = Scan2CadDatasetConfig(FLAGS.n_rot)
 TRAIN_DATASET = Scan2CadDetectionDataset('train', num_points=NUM_POINT, dataset_folder=FLAGS.dataset_folder,
                                          augment=True, use_height=(not FLAGS.no_height),
-                                         n_rot=FLAGS.n_rot)
+                                         n_rot=FLAGS.n_rot, aggressive_rot=FLAGS.aggressive_rot, augment_eval=False)
 TEST_DATASET = Scan2CadDetectionDataset('val', num_points=NUM_POINT, dataset_folder=FLAGS.dataset_folder,
                                         augment=False, use_height=(not FLAGS.no_height),
-                                        n_rot=FLAGS.n_rot)
+                                        n_rot=FLAGS.n_rot, aggressive_rot=FLAGS.aggressive_rot, augment_eval=FLAGS.augment_eval)
 
 print(len(TRAIN_DATASET), len(TEST_DATASET))
 TRAIN_DATALOADER = DataLoader(TRAIN_DATASET, batch_size=BATCH_SIZE,

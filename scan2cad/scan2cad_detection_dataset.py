@@ -26,7 +26,7 @@ MAX_NUM_OBJ = 64
 class Scan2CadDetectionDataset(Dataset):
        
     def __init__(self, split_set='train', num_points=40000, n_rot=4, dataset_folder='scan2cad_train_detection_data',
-        use_height=True, augment=True, return_color=False):
+                 use_height=True, augment=True, return_color=False, aggressive_rot=False, augment_eval=False):
         self.angle_alignment = 'forward aligns with negative y axis.'
         self.n_rot = n_rot
         self.DC = Scan2CadDatasetConfig(n_rot=self.n_rot)
@@ -53,7 +53,9 @@ class Scan2CadDetectionDataset(Dataset):
         self.num_points = num_points
         self.use_height = use_height
         self.augment = augment
-       
+        self.aggressive_rot = aggressive_rot
+        self.augment_eval = augment_eval
+
     def __len__(self):
         return len(self.scan_names)
 
@@ -113,9 +115,30 @@ class Scan2CadDetectionDataset(Dataset):
                 point_pose = np.pi - point_pose
 
             # Rotation along up-axis/Z-axis
-            rot_angle = (np.random.random() * np.pi / 18) - np.pi / 36  # -5 ~ +5 degree
+            # TODO: allowing for more aggressive rotation.
+            if self.aggressive_rot:
+                rot_angle = np.random.uniform(0, 2*np.pi)
+            else:
+                rot_angle = (np.random.random() * np.pi / 18) - np.pi / 36  # -5 ~ +5 degree
             rot_mat = sunrgbd_utils.rotz(rot_angle)
 
+            point_votes_end = np.zeros_like(point_votes)
+            point_votes_end[:, :3] = np.dot(point_cloud[:, 0:3] + point_votes[:, :3], np.transpose(rot_mat))
+            point_votes_end[:, 3:6] = np.dot(point_cloud[:, 0:3] + point_votes[:, 3:6], np.transpose(rot_mat))
+            point_votes_end[:, 6:] = np.dot(point_cloud[:, 0:3] + point_votes[:, 6:], np.transpose(rot_mat))
+
+            point_cloud[:, 0:3] = np.dot(point_cloud[:, 0:3], np.transpose(rot_mat))
+            bboxes[:, 0:3] = np.dot(bboxes[:, 0:3], np.transpose(rot_mat))
+            bboxes[:, 6] += rot_angle
+            point_pose += rot_angle
+            point_votes[:, :3] = point_votes_end[:, :3] - point_cloud[:, 0:3]
+            point_votes[:, 3:6] = point_votes_end[:, 3:6] - point_cloud[:, 0:3]
+            point_votes[:, 6:] = point_votes_end[:, 6:] - point_cloud[:, 0:3]
+
+        # TODO: rotate evaluated scenes if needed.
+        if self.augment_eval and self.aggressive_rot:
+            rot_angle = np.random.uniform(0, 2 * np.pi)
+            rot_mat = sunrgbd_utils.rotz(rot_angle)
             point_votes_end = np.zeros_like(point_votes)
             point_votes_end[:, :3] = np.dot(point_cloud[:, 0:3] + point_votes[:, :3], np.transpose(rot_mat))
             point_votes_end[:, 3:6] = np.dot(point_cloud[:, 0:3] + point_votes[:, 3:6], np.transpose(rot_mat))
